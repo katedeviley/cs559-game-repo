@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+    <title>Space Debris Defender</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div id="group-id">Group 9001</div>
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "./libs/three.js/build/three.module.js"
+          }
+        }
+    </script>
+    <div id="ui"> 
+        <div id="score">Score: 0</div> 
+        <div id="hp">Ship HP: 100</div> 
+        <button id="modeButton">Switch to FULL Mode</button>
+     </div>
+
+    <div id="hitMessage">Ship hit!</div>
+    <canvas id="gameCanvas"></canvas>
+    <script src="main.js" type="module" defer></script>
+  </body>
+</html>
