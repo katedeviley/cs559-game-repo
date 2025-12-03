@@ -4,33 +4,25 @@ import { scene } from './main.js';
 
 export function drawPrototypeShip() {
     const geometry = new THREE.BufferGeometry();
-
     const vertices = new Float32Array([
-         0,  0,  1,     // Nose
-        -0.6, 0, -1,    // Rear left
-         0.6, 0, -1,    // Rear right
-         0, 0.4, -0.6,  // Top fin
+         0,  0,  1,     
+        -0.6, 0, -1,   
+         0.6, 0, -1,    
+         0, 0.4, -0.6,  
     ]);
-
-    // Faces
     const indices = [
-        0, 1, 2,   // Main bottom wing
-        0, 3, 1,   // Left top
-        0, 2, 3,   // Right top
+        0, 1, 2,  
+        0, 3, 1, 
+        0, 2, 3,  
     ];
 
     geometry.setIndex(indices);
-    geometry.setAttribute("position", 
-        new THREE.BufferAttribute(vertices, 3)
-    );
+    geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
     geometry.computeVertexNormals();
 
-    const material = new THREE.MeshBasicMaterial({
-        color: "green",
-        wireframe: true
-    });
-
+    const material = new THREE.MeshBasicMaterial({ color: "lightgreen", wireframe: true });
     const ship = new THREE.Mesh(geometry, material);
+
     ship.rotation.set(0, Math.PI, 0); 
     ship.position.set(0, -5, 0);
     scene.add(ship);
@@ -67,7 +59,7 @@ export function drawPrototypeBounds(n = 25)  {
     return box;
 }
 
-export function drawPrototypeDrone(numDrones = 3, ship) {
+export function drawPrototypeDrones(numDrones = 3, ship) {
     const drones = [];
     const bullets = [];
 
@@ -88,13 +80,40 @@ export function drawPrototypeDrone(numDrones = 3, ship) {
         drones.push(drone);
     }
 
-    // Function to update drones (move toward ship & shoot)
+    /**
+     * Function for drone movement and shooting
+     */
     function updateDrones() {
-        for (let drone of drones) {
-            const dir = new THREE.Vector3();
-            dir.subVectors(ship.position, drone.position).normalize();
-            drone.position.addScaledVector(dir, 0.05); 
+        const separationDistance = 5.0; // how far apart drones stay
+        const separationStrength = 0.1; // how strong the avoidance push is
+        const droneVelocity = 0.1;
+    
+        for (let i = 0; i < drones.length; i++) {
+            const drone = drones[i];
+            const dir = new THREE.Vector3().subVectors(ship.position, drone.position).normalize();
+    
+            // --- Separation from other drones ---
+            const avoid = new THREE.Vector3();
+            for (let j = 0; j < drones.length; j++) {
+                if (i === j) continue;
+    
+                const other = drones[j];
+                const dist = drone.position.distanceTo(other.position);
+    
+                if (dist < separationDistance) {
+                    const push = new THREE.Vector3()
+                        .subVectors(drone.position, other.position)
+                        .normalize()
+                        .multiplyScalar((separationDistance - dist) * separationStrength);
+    
+                    avoid.add(push);
+                }
+            }
+    
+            dir.add(avoid).normalize();
+            drone.position.addScaledVector(dir, droneVelocity); 
 
+            // --- Shooting ---
             drone.userData.cooldown -= 1;
             if (drone.userData.cooldown <= 0) {
                 const bulletGeometry = new THREE.SphereGeometry(0.1, 6, 6);
