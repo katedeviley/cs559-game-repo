@@ -126,18 +126,30 @@ body {
 
 /* Top-left UI */
 #ui {
-  top: 20px;
-  left: 25px;
+  top: 5%;
+  left: 2.5%;
 }
 
 /* Top-right group ID */
 #group-id {
-  top: 20px;
-  right: 25px;
+  top: 5%;
+  right: 2.5%;
   color: cyan;
   border-color: cyan;
   text-shadow: 0 0 6px cyan;
   box-shadow: 0 0 10px cyan;
+}
+
+/* Instruction */
+#instructions {
+    position: absolute;
+    top: 90%;
+    width: 100%;
+    text-align: center;
+    font-size: 0.8em;
+    color: white;
+    text-shadow: 0 0 6px white;
+    display: none;
 }
 
 /* --- End Message --- */
@@ -150,6 +162,17 @@ body {
   font-size: 3em;
   color: #f00;
   text-shadow: 0 0 12px rgb(155, 4, 4), 0 0 24px red;
+}
+
+#highScoreMessage {
+  display: none;
+  position: absolute;
+  top: -65px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.5em;
+  color: white;
+  text-shadow: 0 0 12px cyan, 0 0 24px white;
 }
 
 /* --- Level Message --- */

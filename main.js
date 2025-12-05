@@ -5,6 +5,10 @@ import { loadPrototypeMode} from './prototype.js';
 import { updateObjects, updateUFOs, loadFullMode} from './fullmode.js';
 export let scene, camera, renderer;
 
+// high score
+let highScore = parseInt(localStorage.getItem("highScore")) || 0;
+document.getElementById("highscore").textContent = "High Score: " + highScore;
+
 // Game state variables
 let gameOver = false;
 let gameStarted = false;
@@ -52,14 +56,19 @@ function init() {
     // -- Draw initial objects --
     ({ ship, rocks, drones, enemyShips, ufos } = loadPrototypeMode());
 
-    // -- Display Level --
+    // -- Display Level & Instructions --
     difficulty.style.display = "block";
-    setTimeout(() => { difficulty.style.display = "none"; }, 1000);
+    document.getElementById("instructions").style.display = "block";
+    setTimeout(() => { 
+        difficulty.style.display = "none";
+        document.getElementById("instructions").style.display = "none";
+     }, 3000);
 
     // --- Mouse listener ---
     window.addEventListener("keydown", (e) => {
         if (!gameStarted && (e.code === "Space" || e.code === "Enter")) {
-            hideStartScreen();
+            const s = document.getElementById("arcadeStartScreen");
+            if (s) s.style.display = "none";
             gameStarted = true;
         }
     });
@@ -101,9 +110,12 @@ function init() {
     animate();
 }
 
-function hideStartScreen() {
-    const s = document.getElementById("arcadeStartScreen");
-    if (s) s.style.display = "none";
+function updateHighScore(score) {
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("highScore", highScore);
+        document.getElementById("highscore").textContent = "High Score: " + highScore;
+    }
 }
 
 function shootBullet() {
@@ -147,6 +159,7 @@ function gameEnd() {
     gameOver = true;
     ship = null;
     document.getElementById("end").style.display = "block";
+    if (score >= highScore) document.getElementById("highScoreMessage").style.display = "block";
 }
 
 function animate() {
@@ -255,7 +268,7 @@ function animate() {
         difficulty.textContent = `Level: Medium`;  
         difficulty.style.display = "block";
         mediumShown = true;
-        setTimeout(() => { difficulty.style.display = "none"; }, 1000);
+        setTimeout(() => { difficulty.style.display = "none"; }, 3000);
     }
 
     if ( score >= 100 ) {
@@ -319,7 +332,7 @@ function animate() {
         difficulty.textContent = `Level: Hard`;  
         difficulty.style.display = "block";
         mediumShown = true;
-        setTimeout(() => { difficulty.style.display = "none"; }, 1000);
+        setTimeout(() => { difficulty.style.display = "none"; }, 3000);
     }
 
     if ( score >= 300 ) {
@@ -375,6 +388,7 @@ function animate() {
                 resetObject(d);
 
                 score += 10;
+                updateHighScore(score);
                 document.getElementById("score").textContent = `Score: ${score}`;
                 gain.textContent = `+10 Points`;  
                 gain.style.display = "block";
@@ -392,6 +406,7 @@ function animate() {
                 resetObject(es);
 
                 score += 50;
+                updateHighScore(score);
                 document.getElementById("score").textContent = `Score: ${score}`;
                 gain.textContent = `+50 Points`;  
                 gain.style.display = "block";

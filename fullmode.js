@@ -188,5 +188,6 @@ function drawUFOs(numUFOs) {
 
 function drawBackground() {
 
+
 }
   
