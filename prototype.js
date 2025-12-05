@@ -2,7 +2,24 @@
 import * as THREE from 'three';
 import { scene } from './main.js';
 
-export function drawPrototypeShip() {
+/**
+ * Function to load the prototype mode objects
+ * 
+ * @returns { ship: THREE.Mesh, rocks: THREE.Mesh[], drones: THREE.Mesh[], enemyShips: THREE.Mesh[] }
+ */
+export function loadPrototypeMode() {
+    const ship = drawPrototypeShip();
+    const rocks = drawPrototypeRocks(70);
+    const drones = drawPrototypeDrones(7);
+    const enemyShips = drawPrototypeEnemyShips(3);
+    const ufos = drawPrototypeUFOs(2);
+    drawPrototypeBounds(25);
+
+    return { ship, rocks, drones, enemyShips, ufos };
+}
+
+
+function drawPrototypeShip() {
     const geometry = new THREE.BufferGeometry();
     const vertices = new Float32Array([
          0,  0,  1,     
@@ -30,17 +47,19 @@ export function drawPrototypeShip() {
     return ship;
 }
 
-export function drawPrototypeRocks(numRocks = 10) {
+function drawPrototypeRocks(numRocks) {
     const rocks = [];
     for (let i = 0; i < numRocks; i++) {
+    
         const rockGeometry = new THREE.SphereGeometry( 0.2 + Math.random() * 2, 8, 8);
         const rockMaterial = new THREE.MeshBasicMaterial({ color: "grey", wireframe: true  });
         const rock = new THREE.Mesh(rockGeometry, rockMaterial);
         rock.position.set(
             Math.random() * 50 - 25,
             Math.random() * 50 - 25,
-            Math.random() * -150 + 25
+            Math.random() * -225 -25
         );
+        rock.userData.radius = rockGeometry.parameters.radius;
         rock.userData.speed = 0.05 + Math.random() * 0.2;
         scene.add(rock);
         rocks.push(rock);
@@ -48,7 +67,71 @@ export function drawPrototypeRocks(numRocks = 10) {
     return rocks;
 }
 
-export function drawPrototypeBounds(n = 25)  {    
+function drawPrototypeDrones(numDrones) {
+    const drones = [];
+
+    for (let i = 0; i < numDrones; i++) {
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: "yellow", wireframe: true });
+        const drone = new THREE.Mesh(geometry, material);
+
+        drone.position.set(
+            -25 + Math.random() * 40,
+            -25 + Math.random() * 40,
+            -50 - Math.random() * 150
+        );
+
+        drone.userData.cooldown = Math.random() * 150; 
+        scene.add(drone);
+        drones.push(drone);
+    }
+    return drones;
+}
+
+function drawPrototypeEnemyShips(numShips) {
+    const enemyShips = [];
+
+    for (let i = 0; i < numShips; i++) {
+        const geometry = new THREE.ConeGeometry(0.8, 2, 8);
+        const material = new THREE.MeshBasicMaterial({ color: "orange", wireframe: true });
+        const enemyShip = new THREE.Mesh(geometry, material);
+
+        enemyShip.position.set(
+            -10 + Math.random() * 20,
+            -10 + Math.random() * 20,
+            -200
+        );
+
+        enemyShip.rotation.set(Math.PI / 2, 0, 0); 
+        enemyShip.userData.cooldown = Math.random() * 20;
+        scene.add(enemyShip);
+        enemyShips.push(enemyShip);
+    }
+    return enemyShips;
+}
+
+function drawPrototypeUFOs(numUFOs) {
+    const ufos = [];
+
+    for (let i = 0; i < numUFOs; i++) {
+        const geometry = new THREE.CylinderGeometry(0.5, 1, 0.3, 16);
+        const material = new THREE.MeshBasicMaterial({ color: "red", wireframe: true });
+        const ufo = new THREE.Mesh(geometry, material);
+
+        ufo.position.set(
+            -15 + Math.random() * 30,
+            -15 + Math.random() * 30,
+            -250
+        );
+
+        ufo.userData.cooldown = 5;
+        scene.add(ufo);
+        ufos.push(ufo);
+    }
+    return ufos;
+}
+
+function drawPrototypeBounds(n)  {    
     const bound = n*2;
     const geometry = new THREE.BoxGeometry(bound, bound, bound*10);
     const material = new THREE.MeshBasicMaterial({ color: "white", wireframe: true });
@@ -57,92 +140,4 @@ export function drawPrototypeBounds(n = 25)  {
     box.position.set(0, 0, -bound + n/2);
     scene.add(box);
     return box;
-}
-
-export function drawPrototypeDrones(numDrones = 3, ship) {
-    const drones = [];
-    const bullets = [];
-
-    for (let i = 0; i < numDrones; i++) {
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshBasicMaterial({ color: "orange", wireframe: true });
-        const drone = new THREE.Mesh(geometry, material);
-
-        drone.position.set(
-            -25 + Math.random() * 40,
-            -25 + Math.random() * 40,
-            -20 - Math.random() * 100
-        );
-
-        // Store shooting cooldown 
-        drone.userData.cooldown = Math.random() * 100; 
-        scene.add(drone);
-        drones.push(drone);
-    }
-
-    /**
-     * Function for drone movement and shooting
-     */
-    function updateDrones() {
-        const separationDistance = 5.0; // how far apart drones stay
-        const separationStrength = 0.1; // how strong the avoidance push is
-        const droneVelocity = 0.1;
-    
-        for (let i = 0; i < drones.length; i++) {
-            const drone = drones[i];
-            const dir = new THREE.Vector3().subVectors(ship.position, drone.position).normalize();
-    
-            // --- Separation from other drones ---
-            const avoid = new THREE.Vector3();
-            for (let j = 0; j < drones.length; j++) {
-                if (i === j) continue;
-    
-                const other = drones[j];
-                const dist = drone.position.distanceTo(other.position);
-    
-                if (dist < separationDistance) {
-                    const push = new THREE.Vector3()
-                        .subVectors(drone.position, other.position)
-                        .normalize()
-                        .multiplyScalar((separationDistance - dist) * separationStrength);
-    
-                    avoid.add(push);
-                }
-            }
-    
-            dir.add(avoid).normalize();
-            drone.position.addScaledVector(dir, droneVelocity); 
-
-            // --- Shooting ---
-            drone.userData.cooldown -= 1;
-            if (drone.userData.cooldown <= 0) {
-                const bulletGeometry = new THREE.SphereGeometry(0.1, 6, 6);
-                const bulletMaterial = new THREE.MeshBasicMaterial({ color: "red", wireframe: true });
-                const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
-
-                bullet.position.copy(drone.position);
-                bullet.userData.direction = dir.clone();
-                bullet.userData.speed = 0.5;
-
-                scene.add(bullet);
-                bullets.push(bullet);
-
-                drone.userData.cooldown = 100 + Math.random() * 100;
-            }
-        }
-
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            const b = bullets[i];
-            b.position.addScaledVector(b.userData.direction, b.userData.speed);
-
-            if (b.position.distanceTo(ship.position) > 200) {
-                scene.remove(b);
-                bullets.splice(i, 1);
-            }
-        }
-
-        return bullets; 
-    }
-
-    return { drones, updateDrones };
 }

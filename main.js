@@ -1,16 +1,17 @@
 // main.js
 // @ts-nocheck
 import * as THREE from 'three';
-import { drawPrototypeShip, drawPrototypeRocks, drawPrototypeBounds, drawPrototypeDrones} from './prototype.js';
+import { loadPrototypeMode} from './prototype.js';
+import { updateObjects, updateUFOs, loadFullMode} from './fullmode.js';
 export let scene, camera, renderer;
 
 // Game state variables
 let gameOver = false;
+let gameStarted = false;
 let shipHP = 100;
 let score = 0;
+let cooldownOn = false; 
 const shipHitRadius = 1;
-const scoreDisplay = document.getElementById("score");
-const hpDisplay = document.getElementById("hp");
 
 // Ship movement state
 let mouseX = 0, mouseY = 0;
@@ -19,7 +20,16 @@ const bound = 25;
 const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 
 // Game Elements
-let ship, rocks, drones, updateDrones, shipBullets = [];
+let ship, rocks, drones, enemyShips, ufos;
+let enemyBullets = [], droneBullets = [], shipBullets = [], laserBeams = [];
+
+// Messages
+const hitMessage = document.getElementById("hitMessage");
+const difficulty = document.getElementById("difficulty");
+const loss = document.getElementById("pointLoss");
+const gain = document.getElementById("pointGain");
+
+let mediumShown = false, hardShown = false;
 
 function init() {
     let canShoot = true;
@@ -33,20 +43,39 @@ function init() {
 
     // -- renderer setup --
     const canvas = document.getElementById("gameCanvas");
-    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    document.body.appendChild( renderer.domElement );
+    renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);;
 
     // -- Draw initial objects --
-    ship = drawPrototypeShip();
-    rocks = drawPrototypeRocks(50);
-    drawPrototypeBounds(bound);
-    ({ drones, updateDrones } = drawPrototypeDrones(5, ship));
+    ({ ship, rocks, drones, enemyShips, ufos } = loadPrototypeMode());
+
+    // -- Display Level --
+    difficulty.style.display = "block";
+    setTimeout(() => { difficulty.style.display = "none"; }, 1000);
 
     // --- Mouse listener ---
     window.addEventListener("keydown", (e) => {
-        if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+        if (!gameStarted && (e.code === "Space" || e.code === "Enter")) {
+            hideStartScreen();
+            gameStarted = true;
+        }
     });
+
+    window.addEventListener("keydown", (e) => {
+        if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+        if (!gameStarted) return;
+        if (e.code === "Space" && canShoot) {
+            shootBullet();
+            canShoot = false;
+            setTimeout(() => canShoot = true, 200);
+
+
+            }
+    });
+
     window.addEventListener("keyup", (e) => {
         if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
     });
@@ -70,6 +99,11 @@ function init() {
     });
 
     animate();
+}
+
+function hideStartScreen() {
+    const s = document.getElementById("arcadeStartScreen");
+    if (s) s.style.display = "none";
 }
 
 function shootBullet() {
@@ -101,19 +135,11 @@ function updateCamera() {
     camera.lookAt(ship.position);
 }
 
-function resetRock(rock) {
-    rock.position.set(
+function resetObject(object) {
+    object.position.set(
         Math.random() * 50 - 25,
         Math.random() * 50 - 25,
-        -150
-    );
-}
-
-function resetDrone(drone) {
-    drone.position.set(
-        -25 + Math.random() * 40,
-        -25 + Math.random() * 40,
-        -150
+        -200
     );
 }
 
@@ -137,7 +163,7 @@ function animate() {
 
     // -- Rock movement --
     for (let rock of rocks) {
-        rock.position.z += rock.userData.speed;
+        if (gameStarted == true) { rock.position.z += rock.userData.speed; }
 
         // Check if rock reached the ship/camera
         const dx = rock.position.x - ship.position.x;
@@ -146,33 +172,34 @@ function animate() {
         const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
          // Ship is hit
-        if (distance < shipHitRadius) {
+        if (distance < rock.userData.radius) {
             shipHP -= 10;
             shipHP = Math.max(shipHP, 0);
             if (shipHP <= 0 && !gameOver) {
                 gameEnd();
             }
 
-            hpDisplay.textContent = `Ship HP: ${shipHP}`;  
-            hitMessage.style.display = "block";
-            setTimeout(() => {
-                hitMessage.style.display = "none";
-            }, 500);
+            loss.textContent = `-10 HP`;  
+            loss.style.display = "block";
+            setTimeout(() => { loss.style.display = "none"; }, 500);
 
-            resetRock(rock);
+            document.getElementById("hp").textContent = `Ship HP: ${shipHP}`;  
+            hitMessage.style.display = "block";
+            setTimeout(() => { hitMessage.style.display = "none"; }, 500);
+
+            resetObject(rock);
 
         } else if (rock.position.z > camera.position.z + 2) {
-            resetRock(rock);
+            resetObject(rock);
         }
     }
 
     // -- Drone Movements --
-    // Update drones
-    const bullets = updateDrones();
+    if (gameStarted == true ) { droneBullets = updateObjects(ship, drones, droneBullets); }
 
     // Check bullet collisions with ship
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
+    for (let i = droneBullets.length - 1; i >= 0; i--) {
+        const b = droneBullets[i];
         const distance = b.position.distanceTo(ship.position);
 
         // Ship is hit
@@ -183,19 +210,21 @@ function animate() {
                 gameEnd();
             }
 
-            hpDisplay.textContent = `Ship HP: ${shipHP}`;
+            loss.textContent = `-5 HP`;  
+            loss.style.display = "block";
+            setTimeout(() => { loss.style.display = "none"; }, 500);
+
+            document.getElementById("hp").textContent = `Ship HP: ${shipHP}`;
             hitMessage.style.display = "block";
-            setTimeout(() => {
-                hitMessage.style.display = "none";
-            }, 150);
+            setTimeout(() => { hitMessage.style.display = "none"; }, 150);
 
             scene.remove(b);
-            bullets.splice(i, 1);
+            droneBullets.splice(i, 1);
         }
     }
 
     for (let drone of drones) {
-        // Check if rock reached the ship
+        // Check if drone reached the ship
         const dx = drone.position.x - ship.position.x;
         const dy = drone.position.y - ship.position.y;
         const dz = drone.position.z - ship.position.z;
@@ -209,13 +238,118 @@ function animate() {
                 gameEnd();
             }
 
-            hpDisplay.textContent = `Ship HP: ${shipHP}`;  
-            hitMessage.style.display = "block";
-            setTimeout(() => {
-                hitMessage.style.display = "none";
-            }, 500);
+            loss.textContent = `-20 HP`;  
+            loss.style.display = "block";
+            setTimeout(() => { loss.style.display = "none"; }, 500);
 
-            resetDrone(drone);
+            document.getElementById("hp").textContent = `Ship HP: ${shipHP}`;  
+            hitMessage.style.display = "block";
+            setTimeout(() => { hitMessage.style.display = "none"; }, 500);
+
+            resetObject(drone);
+        }
+    }
+
+    // -- Enemy ship movement --
+    if (score >= 100 && !mediumShown) {
+        difficulty.textContent = `Level: Medium`;  
+        difficulty.style.display = "block";
+        mediumShown = true;
+        setTimeout(() => { difficulty.style.display = "none"; }, 1000);
+    }
+
+    if ( score >= 100 ) {
+        if (gameStarted == true) { enemyBullets = updateObjects(ship, enemyShips, enemyBullets, 0.6, 20); }
+        
+        // Check bullet collisions with ship
+        for (let i = enemyBullets.length - 1; i >= 0; i--) {
+            const b = enemyBullets[i];
+            const distance = b.position.distanceTo(ship.position);
+            // Ship is hit
+            if (distance < 1) {
+                shipHP -= 15;
+                shipHP = Math.max(shipHP, 0);
+                if (shipHP <= 0 && !gameOver) {
+                    gameEnd();
+                }
+
+                loss.textContent = `-15 HP`;  
+                loss.style.display = "block";
+                setTimeout(() => { loss.style.display = "none"; }, 500);
+
+                document.getElementById("hp").textContent = `Ship HP: ${shipHP}`;
+                hitMessage.style.display = "block";
+                setTimeout(() => { hitMessage.style.display = "none"; }, 150);
+                
+                scene.remove(b);
+                enemyBullets.splice(i, 1);
+            }
+        }
+    }
+
+    for (let enemyShip of enemyShips) {
+        // Check if enemy ship reached the ship
+        const dx = enemyShip.position.x - ship.position.x;
+        const dy = enemyShip.position.y - ship.position.y;
+        const dz = enemyShip.position.z - ship.position.z;
+        const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+        // Ship is hit
+        if (distance < shipHitRadius) {
+            shipHP -= 25;
+            shipHP = Math.max(shipHP, 0);
+            if (shipHP <= 0 && !gameOver) {
+                gameEnd();
+            }
+
+            loss.textContent = `-20 HP`;  
+            loss.style.display = "block";
+            setTimeout(() => { loss.style.display = "none"; }, 500);
+
+            document.getElementById("hp").textContent = `Ship HP: ${shipHP}`;  
+            hitMessage.style.display = "block";
+            setTimeout(() => { hitMessage.style.display = "none"; }, 500);
+
+            resetObject(enemyShip);
+        }
+    }
+
+    // -- UFO Movement --
+    if (score >= 500 && !hardShown) {
+        difficulty.textContent = `Level: Hard`;  
+        difficulty.style.display = "block";
+        mediumShown = true;
+        setTimeout(() => { difficulty.style.display = "none"; }, 1000);
+    }
+
+    if ( score >= 300 ) {
+        if (gameStarted == true) { laserBeams = updateUFOs(ship, ufos, laserBeams); }
+
+        // Check laser collisions with ship
+        for (let i = 0; i < ufos.length; i++) {
+            const beam = ufos[i];
+
+            const beamProjected = new THREE.Vector3(beam.position.x, beam.position.y, ship.position.z);
+            const dist = ship.position.distanceTo(beamProjected);
+    
+            if (dist < 1.2 && !cooldownOn) {  
+                shipHP -= 5; 
+                shipHP = Math.max(0, shipHP);
+    
+                if (shipHP <= 0 && !gameOver) gameEnd();
+    
+                loss.textContent = `-5 HP`;  
+                loss.style.display = "block";
+                setTimeout(() => { loss.style.display = "none"; }, 500);
+
+                document.getElementById("hp").textContent = `Ship HP: ${shipHP}`;
+                hitMessage.style.display = "block";
+                setTimeout(() => { hitMessage.style.display = "none"; }, 150);
+                
+                cooldownOn = true;
+                setTimeout(() => { cooldownOn = false; }, 500);
+                break;
+            }
         }
     }
 
@@ -226,7 +360,7 @@ function animate() {
         b.position.addScaledVector(b.userData.direction, b.userData.speed);
     
         // Remove far away bullets
-        if (b.position.z < -200) {
+        if (b.position.z < -190) {
             scene.remove(b);
             shipBullets.splice(i, 1);
             continue;
@@ -238,10 +372,30 @@ function animate() {
             if (b.position.distanceTo(d.position) < 1) {
                 scene.remove(b);
                 shipBullets.splice(i, 1);
-                resetDrone(d);
+                resetObject(d);
 
                 score += 10;
-                scoreDisplay.textContent = `Score: ${score}`;
+                document.getElementById("score").textContent = `Score: ${score}`;
+                gain.textContent = `+10 Points`;  
+                gain.style.display = "block";
+                setTimeout(() => { gain.style.display = "none"; }, 500);
+                break;
+            }
+        }
+
+        // Collision with enemy ships
+        for (let j = enemyShips.length - 1; j >= 0; j--) {
+            const es = enemyShips[j];
+            if (b.position.distanceTo(es.position) < 1) {
+                scene.remove(b);
+                shipBullets.splice(i, 1);
+                resetObject(es);
+
+                score += 50;
+                document.getElementById("score").textContent = `Score: ${score}`;
+                gain.textContent = `+50 Points`;  
+                gain.style.display = "block";
+                setTimeout(() => { gain.style.display = "none"; }, 500);
                 break;
             }
         }

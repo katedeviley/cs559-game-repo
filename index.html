@@ -3,12 +3,14 @@
   <head>
     <meta charset="UTF-8" /> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
-    <title>CS559 Space Defender</title>
+    <title>CS559 Arcade Defender</title>
     <link rel="stylesheet" href="style.css" />
   </head>
-
+  
   <body>
-    <div id="group-id">Group 9001</div>
+    <div id="retroBackground"></div>
+    <div id="arcade-screen"></div>
+    <div id="group-id">Group 9801</div>
     <script type="importmap">
         {
           "imports": {
@@ -22,14 +24,25 @@
         <button id="modeButton">FULL Mode</button>
     </div>
 
+    <div id="difficulty">Level: Easy</div>
+
     <div id="end">
         <div id="endMessage">Game Over!</div> 
         <button id="restartButton">Restart</button>
     </div>
 
     <div id="hitMessage">Ship hit!</div>
+    <div id="pointLoss">-5 HP</div>
+    <div id="pointGain">+20 Score</div>
 
     <canvas id="gameCanvas"></canvas>
+
+    <div id="arcadeStartScreen">
+        <div id="arcadeTitle">ARCADE DEFENDER</div>
+        <div id="arcadeSubtitle">INSERT COIN</div>
+        <div id="pressStart">PRESS START</div>
+    </div>
+
     <script src="main.js" type="module" defer></script>
   </body>
 </html>
