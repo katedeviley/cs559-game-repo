@@ -1,30 +1,29 @@
 // main.js
-// @ts-nocheck
+// @ts-check
 import * as THREE from 'three';
 import { loadPrototypeMode} from './prototype.js';
-import { updateObjects, updateUFOs, loadFullMode} from './fullmode.js';
+import { updateObjects, updateUFOs, loadFullMode, updateBounds} from './fullmode.js';
 export let scene, camera, renderer;
 
-// high score
+// High score 
 let highScore = parseInt(localStorage.getItem("highScore")) || 0;
 document.getElementById("highscore").textContent = "High Score: " + highScore;
 
 // Game state variables
-let gameOver = false;
-let gameStarted = false;
 let shipHP = 100;
 let score = 0;
+let gameOver = false;
+let gameStarted = false;
 let cooldownOn = false; 
 const shipHitRadius = 1;
 
-// Ship movement state
+// Ship movement
 let mouseX = 0, mouseY = 0;
-const shipSpeed = 0.2;
 const bound = 25;
 const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 
 // Game Elements
-let ship, rocks, drones, enemyShips, ufos;
+let ship, rocks, drones, enemyShips, ufos, boundsBox;
 let enemyBullets = [], droneBullets = [], shipBullets = [], laserBeams = [];
 
 // Messages
@@ -33,7 +32,16 @@ const difficulty = document.getElementById("difficulty");
 const loss = document.getElementById("pointLoss");
 const gain = document.getElementById("pointGain");
 
+// Level message
 let mediumShown = false, hardShown = false;
+
+// Audio 
+let audioContext, analyser, dataArray;
+let currentSourceNode = null;
+let audioReady = false;
+const checkbox1 = document.getElementById("checkbox1");
+const checkbox2 = document.getElementById("checkbox2");
+const checkbox3 = document.getElementById("checkbox3");
 
 function init() {
     let canShoot = true;
@@ -54,35 +62,33 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);;
 
     // -- Draw initial objects --
-    ({ ship, rocks, drones, enemyShips, ufos } = loadPrototypeMode());
+    ({ ship, rocks, drones, enemyShips, ufos, boundsBox } = loadPrototypeMode());
 
     // -- Display Level & Instructions --
     difficulty.style.display = "block";
-    document.getElementById("instructions").style.display = "block";
     setTimeout(() => { 
         difficulty.style.display = "none";
-        document.getElementById("instructions").style.display = "none";
-     }, 3000);
+     }, 6000);
 
     // --- Mouse listener ---
     window.addEventListener("keydown", (e) => {
+        // Start the game when Space or Enter pressed (only if not started)
         if (!gameStarted && (e.code === "Space" || e.code === "Enter")) {
             const s = document.getElementById("arcadeStartScreen");
             if (s) s.style.display = "none";
-            gameStarted = true;
+            uiToggle.click(); 
+            return;
         }
-    });
 
-    window.addEventListener("keydown", (e) => {
+        // Movement keys
         if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
-        if (!gameStarted) return;
-        if (e.code === "Space" && canShoot) {
+
+        // Shooting while game is started
+        if (gameStarted && e.code === "Space" && canShoot) {
             shootBullet();
             canShoot = false;
-            setTimeout(() => canShoot = true, 200);
-
-
-            }
+            setTimeout(() => canShoot = true, 200); // fire rate limit
+        }
     });
 
     window.addEventListener("keyup", (e) => {
@@ -94,10 +100,6 @@ function init() {
         mouseY = (e.clientY / window.innerHeight) * 2 - 1;
     });
 
-    document.getElementById("restartButton").addEventListener("click", () => {
-        location.reload();
-    });
-
     window.addEventListener("keydown", (e) => {
         if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
         if (e.code === "Space" && canShoot) {
@@ -107,12 +109,111 @@ function init() {
         }
     });
 
+    // -- Buttons -- 
+    document.getElementById("restartButton").addEventListener("click", () => {
+        location.reload();
+    });
+
+    document.getElementById("uiToggle").addEventListener("click", () => {
+        const ui = document.getElementById("ui");
+        const uiToggle = document.getElementById("uiToggle");
+        ui.classList.toggle("open");
+        uiToggle.classList.toggle("open"); 
+
+        if(!ui.classList.contains("open")) {
+            gameStarted = true;
+            document.getElementById("uiToggle").textContent = "Settings ▼";
+        } else {
+            gameStarted = false;
+            document.getElementById("uiToggle").textContent = "Settings ▲";
+        }
+    });
+
+    // -- Audio --
+    document.getElementById("songPicker").addEventListener("change", async function(e) {
+        checkbox1.checked = false;
+        checkbox2.checked = false;
+        checkbox3.checked = false;
+        playAudio(e.target.files[0]); 
+    });
+
+    checkbox1.addEventListener('change', async function() {
+        if (checkbox1.checked) {
+            checkbox2.checked = false;
+            checkbox3.checked = false;
+            playAudio( await fetch('./assets/songs/song1.mp3')); 
+        }  else {
+            try { currentSourceNode.stop(); } catch (err) { /* ignore */ }
+            currentSourceNode = null;
+        }
+        audioReady = false; 
+    });
+
+    checkbox2.addEventListener('change', async function() {
+        if (checkbox2.checked) {
+            checkbox1.checked = false;
+            checkbox3.checked = false;
+            playAudio( await fetch('./assets/songs/song2.mp3')); 
+        } else {
+            try { currentSourceNode.stop(); } catch (err) { /* ignore */ }
+            currentSourceNode = null;
+        }
+        audioReady = false; 
+    });
+
+    checkbox3.addEventListener('change', async function() {
+        if (checkbox3.checked) {
+            checkbox2.checked = false;
+            checkbox1.checked = false;
+            playAudio( await fetch('./assets/songs/song3.mp3')); 
+        } else {
+            try { currentSourceNode.stop(); } catch (err) { /* ignore */ }
+            currentSourceNode = null;
+        }
+        audioReady = false; 
+    });
+
     animate();
 }
 
-function updateHighScore(score) {
-    if (score > highScore) {
-        highScore = score;
+async function playAudio(file) {
+    if (!file) return;
+
+    if (currentSourceNode){
+        try { currentSourceNode.stop(); } catch (err) { /* ignore */ }
+        currentSourceNode = null;
+        audioReady = false; 
+    }
+
+    audioContext = new AudioContext();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    // 1. Create the source node 
+    const sourceNode = audioContext.createBufferSource();
+    sourceNode.buffer = audioBuffer;
+    currentSourceNode = sourceNode; 
+    
+    // 2. Create the analyser node
+    analyser = audioContext.createAnalyser(); 
+    analyser.fftSize = 512;
+    
+    // 3. Create a place to store the frequency data
+    const bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+
+    // 4. Connect the nodes in the correct order
+    sourceNode.connect(analyser);
+    analyser.connect(audioContext.destination);
+    
+    // 5. Start the audio playback
+    sourceNode.start();
+    audioReady = true; 
+}
+
+function updateHighScore(s) {
+    if (s > highScore) {
+        highScore = s;
         localStorage.setItem("highScore", highScore);
         document.getElementById("highscore").textContent = "High Score: " + highScore;
     }
@@ -156,7 +257,7 @@ function resetObject(object) {
 }
 
 function gameEnd() {
-    gameOver = true;
+    gameOver = true; gameStarted = false;
     ship = null;
     document.getElementById("end").style.display = "block";
     if (score >= highScore) document.getElementById("highScoreMessage").style.display = "block";
@@ -166,13 +267,33 @@ function animate() {
     requestAnimationFrame(animate);
 
     // -- Ship movement --
-    if (ship) {
-        if (keys.ArrowUp && ship.position.y < bound) ship.position.y += shipSpeed;
-        if (keys.ArrowDown && ship.position.y > -bound) ship.position.y -= shipSpeed;
-        if (keys.ArrowLeft && ship.position.x > -bound) ship.position.x -= shipSpeed;
-        if (keys.ArrowRight && ship.position.x < bound) ship.position.x += shipSpeed;
+    if (gameStarted && audioReady && boundsBox && analyser && dataArray) {
+        const limits = updateBounds(analyser, dataArray, boundsBox, bound);
+        if (limits && ship && gameStarted) {
+
+            // movement using dynamic bounds
+            if (keys.ArrowUp    && ship.position.y < limits.yMax) ship.position.y += 0.2;
+            if (keys.ArrowDown  && ship.position.y > limits.yMin) ship.position.y -= 0.2;
+            if (keys.ArrowLeft  && ship.position.x > limits.xMin) ship.position.x -= 0.2;
+            if (keys.ArrowRight && ship.position.x < limits.xMax) ship.position.x += 0.2;
+    
+            // clamp AFTER movement
+            if (ship.position.y > limits.yMax) ship.position.y = limits.yMax;
+            if (ship.position.y < limits.yMin) ship.position.y = limits.yMin;
+            if (ship.position.x > limits.xMax) ship.position.x = limits.xMax;
+            if (ship.position.x < limits.xMin) ship.position.x = limits.xMin;
+        }
     }
-    updateCamera();
+
+    if (!audioReady && ship && gameStarted) {
+        if (keys.ArrowUp && ship.position.y < bound) ship.position.y += 0.2;
+        if (keys.ArrowDown && ship.position.y > -bound) ship.position.y -= 0.2;
+        if (keys.ArrowLeft && ship.position.x > -bound) ship.position.x -= 0.2;
+        if (keys.ArrowRight && ship.position.x < bound) ship.position.x += 0.2;
+    }
+
+    // -- Camera --
+    if( gameStarted == true) updateCamera();
 
     // -- Rock movement --
     for (let rock of rocks) {
@@ -208,7 +329,7 @@ function animate() {
     }
 
     // -- Drone Movements --
-    if (gameStarted == true ) { droneBullets = updateObjects(ship, drones, droneBullets); }
+    if (gameStarted == true) { droneBullets = updateObjects(ship, drones, droneBullets); }
 
     // Check bullet collisions with ship
     for (let i = droneBullets.length - 1; i >= 0; i--) {
@@ -265,7 +386,7 @@ function animate() {
 
     // -- Enemy ship movement --
     if (score >= 100 && !mediumShown) {
-        difficulty.textContent = `Level: Medium`;  
+        difficulty.textContent = `Level 2`;  
         difficulty.style.display = "block";
         mediumShown = true;
         setTimeout(() => { difficulty.style.display = "none"; }, 3000);
@@ -329,7 +450,7 @@ function animate() {
 
     // -- UFO Movement --
     if (score >= 500 && !hardShown) {
-        difficulty.textContent = `Level: Hard`;  
+        difficulty.textContent = `Level 3`;  
         difficulty.style.display = "block";
         mediumShown = true;
         setTimeout(() => { difficulty.style.display = "none"; }, 3000);

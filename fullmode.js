@@ -7,7 +7,6 @@ import { scene } from './main.js';
  * @returns { ship: THREE.Mesh, rocks: THREE.Mesh[], drones: THREE.Mesh[], enemyShips: THREE.Mesh[] }
  */
 export function loadFullMode() {
-    //loadPrototypeMode(scene);
     const ship = drawShip();
     const rocks = drawRocks(70);
     const drones = drawDrones(7);
@@ -165,8 +164,43 @@ export function updateUFOs(ship, ufos, lasers) {
     return lasers;
 }
 
+export function updateBounds(analyser, dataArray, boundsBox, bound) {
+    analyser.getByteFrequencyData(dataArray);
+
+    // --- Calculate bass energy ---
+    const N = Math.min(20, dataArray.length);
+    let bass = 0;
+    for (let i = 0; i < N; i++) bass += dataArray[i];
+    bass /= N;
+    const t = bass / 255;
+
+    // --- Shrink box based on bass ---
+    const shrink = 1 - (t * 0.6);   // never below 0.4 scale
+    boundsBox.scale.set(shrink, shrink, 1);
+
+    // --- Visual effects ---
+    if (boundsBox.material) {
+        if (boundsBox.material.color && typeof boundsBox.material.color.setHSL === 'function') {
+            boundsBox.material.color.setHSL(0.55, 1, 0.4 + t * 0.5);
+        }
+        boundsBox.material.opacity = 0.6 + t * 0.4;
+        boundsBox.material.transparent = true;
+    }
+
+    // --- Compute new movement bounds (x/y radius) ---
+    const originalRadius = bound;
+    const currentRadius = originalRadius * shrink;
+
+    return {
+        xMin: -currentRadius,
+        xMax:  currentRadius,
+        yMin: -currentRadius,
+        yMax:  currentRadius,
+    };
+}
 
 function drawShip() {
+    const geom = new THREE.BufferGeometry();
 
 }
 

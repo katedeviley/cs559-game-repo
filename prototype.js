@@ -7,17 +7,16 @@ import { scene } from './main.js';
  * 
  * @returns { ship: THREE.Mesh, rocks: THREE.Mesh[], drones: THREE.Mesh[], enemyShips: THREE.Mesh[] }
  */
-export function loadPrototypeMode() {
+export function loadPrototypeMode() { 
     const ship = drawPrototypeShip();
     const rocks = drawPrototypeRocks(70);
     const drones = drawPrototypeDrones(7);
     const enemyShips = drawPrototypeEnemyShips(3);
     const ufos = drawPrototypeUFOs(2);
-    drawPrototypeBounds(25);
+    const boundsBox = drawPrototypeBounds(25);
 
-    return { ship, rocks, drones, enemyShips, ufos };
+    return { ship, rocks, drones, enemyShips, ufos, boundsBox };
 }
-
 
 function drawPrototypeShip() {
     const geometry = new THREE.BufferGeometry();
@@ -138,6 +137,7 @@ function drawPrototypeBounds(n)  {
     const box = new THREE.Mesh(geometry, material);
     
     box.position.set(0, 0, -bound + n/2);
+    box.userData.originalRadius = n;
     scene.add(box);
     return box;
 }

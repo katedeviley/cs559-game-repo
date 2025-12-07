@@ -3,10 +3,9 @@
   <head>
     <meta charset="UTF-8" /> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
-    <title>CS559 Arcade Defender</title>
+    <title>CS559 Space Defender</title>
     <link rel="stylesheet" href="style.css" />
   </head>
-  
   <body>
     <div id="retroBackground"></div>
     <div id="arcade-screen"></div>
@@ -18,18 +17,45 @@
           }
         }
     </script>
-    <div id="ui"> 
+    <div id="state"> 
         <div id="score">Score: 0</div> 
         <div id="highscore">High Score: 0</div>
         <div id="hp">Ship HP: 100</div> 
-        <button id="modeButton">FULL Mode</button>
     </div>
 
-    <div id="instructions">
-        ▶ Arrow Keys: Up, Down, Left, Right<br>
-        ▶ Space Bar: Shoot
+    <div id="uiToggle">Settings ▲</div>
+    <div id="ui"> 
+        <div id="uiText"> Keys: <br> </div>
+        ▶ Arrow Keys: Move<br>
+        ▶ Space Bar: Shoot<br>
+        <div id="song">Select Song: <br></div> 
+        ▶ Select song to <br>
+        add difficulty, or <br>
+        import your own. <br><br>
+        <label class="custom-checkbox">
+            <br>
+            <input type="checkbox" id="checkbox1">
+            <span class="checkmark"></span>
+            Song 1
+        </label>
+        <label class="custom-checkbox">
+            <br>
+            <input type="checkbox" id="checkbox2">
+            <span class="checkmark"></span>
+            Song 2
+        </label>
+        <label class="custom-checkbox">
+            <br>
+            <input type="checkbox" id="checkbox3">
+            <span class="checkmark"></span>
+            Song 3
+        </label>
+        <label for="songPicker" id="songPickerLabel">Import Song</label>
+        <input type="file" id="songPicker" accept="audio/*"> <br>
+        <button id="modeButton">FULL MODE</button>
     </div>
-    <div id="difficulty">Level: Easy</div>
+
+    <div id="difficulty">Level 1</div>
 
     <div id="end">
         <div id="highScoreMessage">*HIGH SCORE*</div>
@@ -44,7 +70,7 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="arcadeStartScreen">
-        <div id="arcadeTitle">ARCADE DEFENDER</div>
+        <div id="arcadeTitle">SPACE DEFENDER</div>
         <div id="arcadeSubtitle">INSERT COIN</div>
         <div id="pressStart">PRESS START</div>
     </div>

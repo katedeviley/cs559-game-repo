@@ -15,7 +15,7 @@
 
     background: radial-gradient(circle at center, #15001a, #02010a 70%, #000000 100%);
     font-family: 'Press Start 2P', monospace;
-    color: #ffeb3b;
+    color: #0f0;
 
     border-radius: 100px;
     border: 50px solid #000080;
@@ -35,7 +35,7 @@
 /* TV Static */
 #arcadeStartScreen::after {
     content: "";
-    position: absolute;
+    position: fixed;
     width: 200%;
     height: 200%;
     top: 0;
@@ -48,11 +48,11 @@
 
 #arcadeTitle {
     font-size: 2.2em;
-    color: red;
+    color: #AD03DE;
     text-shadow:
         0 0 5px #692222,
-        0 0 10px #ff0000,
-        0 0 20px #ff0000;
+        0 0 10px #AD03DE,
+        0 0 20px #AD03DE;
     margin-bottom: 30px;
 }
 
@@ -75,8 +75,8 @@ body {
   margin: 0;
   overflow: hidden;
   font-family: 'Press Start 2P', monospace;
-  color: #0f0;
-  text-shadow: 0 0 6px #0f0;
+  color: cyan;
+  text-shadow: 0 0 6px cyan;
 }
 
 #arcade-screen {
@@ -85,12 +85,9 @@ body {
     left: -40px;
     width: 98%;
     height: 96.5%;
-  
     pointer-events: none;
-   
     border-radius: 100px;
     border: 50px solid #000080;
-  
     box-shadow:
       0 0 20px #000080,
       0 0 35px #0B0B45,
@@ -111,94 +108,171 @@ body {
     animation: starsMove 60s linear infinite;
 }
 
-
-/* --- UI Text --- */
-#ui, #group-id {
-  position: absolute;
-  padding: 8px 12px;
-  background: rgba(0,0,0,0.5);
-  border: 2px solid #0f0;
-  box-shadow: 0 0 8px #0f0;
-  border-radius: 4px;
-  font-size: 14px;
-  letter-spacing: 2px;
+/* --- Game State Text --- */
+#state, #group-id {
+    position: fixed;
+    padding: 8px 20px;
+    background: rgba(0,0,0,0.5);
+    border: 2px solid cyan;
+    box-shadow: 0 0 8px cyan;
+    border-radius: 4px;
+    font-size: 14px;
+    letter-spacing: 2px;
+    line-height: 20px;
 }
 
-/* Top-left UI */
-#ui {
-  top: 5%;
-  left: 2.5%;
+/* Top-left Game State */
+#state {
+    top: 15px;
+    left: 15px;
 }
 
 /* Top-right group ID */
 #group-id {
-  top: 5%;
-  right: 2.5%;
-  color: cyan;
-  border-color: cyan;
-  text-shadow: 0 0 6px cyan;
-  box-shadow: 0 0 10px cyan;
+    top: 15px;
+    right: 15px;
 }
 
-/* Instruction */
-#instructions {
-    position: absolute;
-    top: 90%;
-    width: 100%;
-    text-align: center;
-    font-size: 0.8em;
-    color: white;
-    text-shadow: 0 0 6px white;
-    display: none;
+/* -- UI -- */
+#uiToggle {
+    position: fixed;
+    top: 185px;
+    left: -80px;
+    padding: 10px 15px;
+    background: black;
+    color: #AD03DE;
+    border: 3px solid #AD03DE;
+    font-family: 'Press Start 2P', monospace;
+    cursor: pointer;
+    z-index: 9999;
+    text-shadow: 0 0 8px #AD03DE;
+    border-radius: 6px;
+    box-shadow: 0 0 10px #AD03DE;
+    transition: transform 0.3s ease-in-out;
+    transform: rotateZ(90deg);
+}
+
+#uiToggle:hover {
+    background: #AD03DE;
+    color: black;
+    transform: rotateZ(90deg);
+}
+
+#uiToggle.open {
+    transform: rotateZ(90deg);
+}
+
+/* Slide UI panel */
+#ui {
+    position: fixed;
+    top: 108px;
+    left: -15px;
+    padding: 10px 20px 10px 80px;
+    background: rgba(0,0,0,0.6);
+    color: #AD03DE;
+    text-shadow: 0 0 8px #AD03DE;
+    font-size: 12px;
+    border: 2px solid #AD03DE;
+    border-radius: 6px;
+    box-shadow: 0 0 12px #AD03DE;
+    transform: translateX(-120%);
+    transition: transform 0.3s ease-in-out;
+    line-height: 17px;
+}
+
+#uiText {
+    font-size: 15px;
+    padding: 15px 10px;
+}
+
+#ui.open {
+    transform: translateX(0);
+}
+
+/* Custom neon checkbox box */
+.custom-checkbox .checkmark {
+    left: -17px;
+    width: 11px;
+    height: 11px;
+    border: 3px solid #AD03DE;
+    border-radius: 4px;
+    box-shadow: 0 0 8px #AD03DE;
+    transition: 0.15s;
+    position: relative;
+    background-color: black;
+  }
+  
+/* Checkmark glow effect */
+.custom-checkbox input:checked + .checkmark {
+    background: #be17ec;
+    box-shadow: 0 0 12px #be17ec, inset 0 0 6px #000;
+}
+
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: #AD03DE;
+    cursor: pointer;
+    user-select: none;
+    text-shadow: 0 0 8px #AD03DE;
+}
+
+#song {
+    padding: 15px 10px;
+    color: #AD03DE;
+    text-shadow: 0 0 8px #AD03DE;
+    font-size: 14px;
 }
 
 /* --- End Message --- */
 #end {
-  display: none;
-  position: absolute;
-  top: 40%;
-  width: 100%;
-  text-align: center;
-  font-size: 3em;
-  color: #f00;
-  text-shadow: 0 0 12px rgb(155, 4, 4), 0 0 24px red;
+    display: none;
+    position: absolute;
+    top: 40%;
+    width: 100%;
+    text-align: center;
+    font-size: 3em;
+    color: #f00;
+    text-shadow: 0 0 12px rgb(155, 4, 4), 0 0 24px red;
 }
 
 #highScoreMessage {
-  display: none;
-  position: absolute;
-  top: -65px;
-  width: 100%;
-  text-align: center;
-  font-size: 0.5em;
-  color: white;
-  text-shadow: 0 0 12px cyan, 0 0 24px white;
+    display: none;
+    position: absolute;
+    top: -65px;
+    width: 100%;
+    text-align: center;
+    font-size: 0.5em;
+    color: white;
+    text-shadow: 0 0 12px cyan, 0 0 24px white;
 }
 
 /* --- Level Message --- */
 #difficulty {
-  display: none;
-  position: absolute;
-  top: 80%;
-  width: 100%;
-  text-align: center;
-  font-size: 2.2em;
-  color: #0ff;
-  text-shadow: 0 0 10px #0ff;
+    display: none;
+    position: absolute;
+    top: 80%;
+    width: 100%;
+    text-align: center;
+    font-size: 2.2em;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
 }
 
 /* --- Point Meassage --- */
 #hitMessage {
-  position: absolute;
-  top: 55%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1em;
-  color: red;
-  text-shadow: 0 0 10px red, 0 0 20px red;
-  font-weight: bold;
-  display: none;
-  z-index: 1000;
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1em;
+    color: red;
+    text-shadow: 0 0 10px red, 0 0 20px red;
+    font-weight: bold;
+    display: none;
+    z-index: 1000;
 }
 
 #pointLoss {
@@ -260,6 +334,56 @@ button:active {
 #restartButton:hover {
     animation: none;
 }
+
+#modeButton {
+    padding: 8px 40px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    color: cyan;
+    border: 3px solid cyan;
+    text-shadow: 0 0 6px cyan;
+}
+
+#modeButton:hover {
+    background: cyan;
+    color: black;
+    box-shadow: 0 0 12px cyan;
+}
+
+/* -- Audio Input -- */
+#songPicker {
+    display: none;
+}
+  
+#songPickerLabel {
+    margin-top: 15px;
+    padding: 8px 35px;
+    background: black;
+    color: #cyan;
+    border: 3px solid #AD03DE;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 1em;
+    text-shadow: 0 0 6px #AD03DE;
+    cursor: pointer;
+    transition: 0.15s;
+    border-radius: 4px;
+    display: inline-block;  
+}
+  
+/* Hover effect */
+#songPickerLabel:hover {
+    background: #AD03DE;
+    color: black;
+    text-shadow: none;
+    box-shadow: 0 0 12px #AD03DE;
+    transform: scale(1.1);
+}
+  
+/* Active click effect */
+#songPickerLabel:active {
+    transform: scale(0.95);
+}
+
 
 /* --- Key Frames --- */
 @keyframes blink {
