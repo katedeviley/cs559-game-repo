@@ -1,7 +1,7 @@
 // main.js
 // @ts-check
 import * as THREE from 'three';
-import { loadPrototypeMode} from './prototype.js';
+import { loadPrototypeMode, drawBounds} from './prototype.js';
 import { updateObjects, updateUFOs, loadFullMode, updateBounds} from './fullmode.js';
 export let scene, camera, renderer;
 
@@ -10,6 +10,7 @@ let highScore = parseInt(localStorage.getItem("highScore")) || 0;
 document.getElementById("highscore").textContent = "High Score: " + highScore;
 
 // Game state variables
+let fullMode = false;
 let shipHP = 100;
 let score = 0;
 let gameOver = false;
@@ -61,6 +62,16 @@ function init() {
     });
     renderer.setSize(window.innerWidth, window.innerHeight);;
 
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffEF, 1);
+    directionalLight.position.set(0, 10, 10);
+    directionalLight.lookAt(0, 0, -5);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+
     // -- Draw initial objects --
     ({ ship, rocks, drones, enemyShips, ufos, boundsBox } = loadPrototypeMode());
 
@@ -69,6 +80,7 @@ function init() {
     setTimeout(() => { 
         difficulty.style.display = "none";
      }, 6000);
+
 
     // --- Mouse listener ---
     window.addEventListener("keydown", (e) => {
@@ -114,6 +126,23 @@ function init() {
         location.reload();
     });
 
+    document.getElementById("modeButton").addEventListener("click", () => {
+        const objectsToRemove = [ship, ...rocks, ...drones, ...enemyShips, ...ufos];
+        objectsToRemove.forEach(o => { if (o) scene.remove(o); });
+
+        fullMode = !fullMode;
+    
+        if (fullMode) {
+            ({ ship, rocks, drones, enemyShips, ufos } = loadFullMode());
+            document.getElementById("modeButton").textContent = "PROTOTYPE MODE";
+            document.getElementById("modeButton").style.padding = "8px 8px";
+        } else {
+            ({ ship, rocks, drones, enemyShips, ufos, boundsBox } = loadPrototypeMode());
+            document.getElementById("modeButton").textContent = "FULL MODE";
+            document.getElementById("modeButton").style.padding = "8px 41px";
+        }
+    });
+
     document.getElementById("uiToggle").addEventListener("click", () => {
         const ui = document.getElementById("ui");
         const uiToggle = document.getElementById("uiToggle");
@@ -122,10 +151,10 @@ function init() {
 
         if(!ui.classList.contains("open")) {
             gameStarted = true;
-            document.getElementById("uiToggle").textContent = "Settings ▼";
+            document.getElementById("uiToggle").textContent = "Settings ▲";
         } else {
             gameStarted = false;
-            document.getElementById("uiToggle").textContent = "Settings ▲";
+            document.getElementById("uiToggle").textContent = "Settings ▼";
         }
     });
 
@@ -143,8 +172,10 @@ function init() {
             checkbox3.checked = false;
             playAudio( await fetch('./assets/songs/song1.mp3')); 
         }  else {
-            try { currentSourceNode.stop(); } catch (err) { /* ignore */ }
+            try { currentSourceNode.stop(); } catch (err) {}
             currentSourceNode = null;
+            scene.remove(boundsBox);
+            boundsBox = drawBounds(25);
         }
         audioReady = false; 
     });
@@ -155,8 +186,10 @@ function init() {
             checkbox3.checked = false;
             playAudio( await fetch('./assets/songs/song2.mp3')); 
         } else {
-            try { currentSourceNode.stop(); } catch (err) { /* ignore */ }
+            try { currentSourceNode.stop(); } catch (err) {}
             currentSourceNode = null;
+            scene.remove(boundsBox);
+            boundsBox = drawBounds(25);
         }
         audioReady = false; 
     });
@@ -167,8 +200,10 @@ function init() {
             checkbox1.checked = false;
             playAudio( await fetch('./assets/songs/song3.mp3')); 
         } else {
-            try { currentSourceNode.stop(); } catch (err) { /* ignore */ }
+            try { currentSourceNode.stop(); } catch (err) {}
             currentSourceNode = null;
+            scene.remove(boundsBox);
+            boundsBox = drawBounds(25);
         }
         audioReady = false; 
     });
@@ -184,29 +219,18 @@ async function playAudio(file) {
         currentSourceNode = null;
         audioReady = false; 
     }
-
     audioContext = new AudioContext();
     const arrayBuffer = await file.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    // 1. Create the source node 
     const sourceNode = audioContext.createBufferSource();
     sourceNode.buffer = audioBuffer;
     currentSourceNode = sourceNode; 
-    
-    // 2. Create the analyser node
     analyser = audioContext.createAnalyser(); 
     analyser.fftSize = 512;
-    
-    // 3. Create a place to store the frequency data
     const bufferLength = analyser.frequencyBinCount;
     dataArray = new Uint8Array(bufferLength);
-
-    // 4. Connect the nodes in the correct order
     sourceNode.connect(analyser);
     analyser.connect(audioContext.destination);
-    
-    // 5. Start the audio playback
     sourceNode.start();
     audioReady = true; 
 }
@@ -267,21 +291,38 @@ function animate() {
     requestAnimationFrame(animate);
 
     // -- Ship movement --
+    let shipDistance = Math.sqrt(ship.position.x ** 2 + ship.position.y ** 2);
     if (gameStarted && audioReady && boundsBox && analyser && dataArray) {
-        const limits = updateBounds(analyser, dataArray, boundsBox, bound);
-        if (limits && ship && gameStarted) {
+        const edgeDistance = updateBounds(analyser, dataArray, boundsBox, bound);
+        if (edgeDistance && ship && gameStarted) {
 
-            // movement using dynamic bounds
-            if (keys.ArrowUp    && ship.position.y < limits.yMax) ship.position.y += 0.2;
-            if (keys.ArrowDown  && ship.position.y > limits.yMin) ship.position.y -= 0.2;
-            if (keys.ArrowLeft  && ship.position.x > limits.xMin) ship.position.x -= 0.2;
-            if (keys.ArrowRight && ship.position.x < limits.xMax) ship.position.x += 0.2;
-    
-            // clamp AFTER movement
-            if (ship.position.y > limits.yMax) ship.position.y = limits.yMax;
-            if (ship.position.y < limits.yMin) ship.position.y = limits.yMin;
-            if (ship.position.x > limits.xMax) ship.position.x = limits.xMax;
-            if (ship.position.x < limits.xMin) ship.position.x = limits.xMin;
+            if (shipDistance < edgeDistance) {
+                // inside bounds → allow movement
+                if (keys.ArrowUp) ship.position.y += 0.2;
+                if (keys.ArrowDown) ship.position.y -= 0.2;
+                if (keys.ArrowLeft) ship.position.x -= 0.2;
+                if (keys.ArrowRight) ship.position.x += 0.2;
+            } else {
+                // outside bounds
+                boundsBox.material.color.setHSL(0, 1, 0.5);
+                const scale = (edgeDistance - 2) / shipDistance;
+                ship.position.x *= scale;
+                ship.position.y *= scale;
+            
+                shipHP -= 5;
+                shipHP = Math.max(shipHP, 0);
+                loss.textContent = `-5 HP`;  
+                loss.style.display = "block";
+                setTimeout(() => { loss.style.display = "none"; }, 500);
+
+                document.getElementById("hp").textContent = `Ship HP: ${shipHP}`;  
+                hitMessage.textContent = "Out of Range";
+                hitMessage.style.display = "block";
+                setTimeout(() => { 
+                    hitMessage.style.display = "none"; 
+                    hitMessage.textContent = "Ship hit!";
+                }, 500);
+            }
         }
     }
 
@@ -290,6 +331,28 @@ function animate() {
         if (keys.ArrowDown && ship.position.y > -bound) ship.position.y -= 0.2;
         if (keys.ArrowLeft && ship.position.x > -bound) ship.position.x -= 0.2;
         if (keys.ArrowRight && ship.position.x < bound) ship.position.x += 0.2;
+
+        if (ship.position.y >= bound|| ship.position.y <= -bound || 
+            ship.position.x <= -bound || ship.position.x >= bound) { 
+                const scale = (bound - 2) / shipDistance;
+                ship.position.x = ship.position.x*scale;
+                ship.position.y = ship.position.y*scale;
+                boundsBox.material.color.setHSL(0, 1, 0.5);
+
+                shipHP -= 5;
+                shipHP = Math.max(shipHP, 0);
+                loss.textContent = `-5 HP`;  
+                loss.style.display = "block";
+                setTimeout(() => { loss.style.display = "none"; }, 500);
+
+                document.getElementById("hp").textContent = `Ship HP: ${shipHP}`;  
+                hitMessage.textContent = "Out of Range";
+                hitMessage.style.display = "block";
+                setTimeout(() => { 
+                    hitMessage.style.display = "none"; 
+                    hitMessage.textContent = "Ship hit!";
+                }, 500);
+        } else boundsBox.material.color.setHSL(0.55, 0.0, 1.0);
     }
 
     // -- Camera --
@@ -401,13 +464,13 @@ function animate() {
             const distance = b.position.distanceTo(ship.position);
             // Ship is hit
             if (distance < 1) {
-                shipHP -= 15;
+                shipHP -= 5;
                 shipHP = Math.max(shipHP, 0);
                 if (shipHP <= 0 && !gameOver) {
                     gameEnd();
                 }
 
-                loss.textContent = `-15 HP`;  
+                loss.textContent = `-5 HP`;  
                 loss.style.display = "block";
                 setTimeout(() => { loss.style.display = "none"; }, 500);
 
@@ -452,7 +515,7 @@ function animate() {
     if (score >= 500 && !hardShown) {
         difficulty.textContent = `Level 3`;  
         difficulty.style.display = "block";
-        mediumShown = true;
+        hardShown = true;
         setTimeout(() => { difficulty.style.display = "none"; }, 3000);
     }
 

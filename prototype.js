@@ -13,7 +13,7 @@ export function loadPrototypeMode() {
     const drones = drawPrototypeDrones(7);
     const enemyShips = drawPrototypeEnemyShips(3);
     const ufos = drawPrototypeUFOs(2);
-    const boundsBox = drawPrototypeBounds(25);
+    const boundsBox = drawBounds(25);
 
     return { ship, rocks, drones, enemyShips, ufos, boundsBox };
 }
@@ -36,7 +36,7 @@ function drawPrototypeShip() {
     geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
     geometry.computeVertexNormals();
 
-    const material = new THREE.MeshBasicMaterial({ color: "lightgreen", wireframe: true });
+    const material = new THREE.MeshBasicMaterial({ color: 0x1e90ff, wireframe: true });
     const ship = new THREE.Mesh(geometry, material);
 
     ship.rotation.set(0, Math.PI, 0); 
@@ -130,7 +130,7 @@ function drawPrototypeUFOs(numUFOs) {
     return ufos;
 }
 
-function drawPrototypeBounds(n)  {    
+export function drawBounds(n)  {    
     const bound = n*2;
     const geometry = new THREE.BoxGeometry(bound, bound, bound*10);
     const material = new THREE.MeshBasicMaterial({ color: "white", wireframe: true });

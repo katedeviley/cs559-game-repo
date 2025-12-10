@@ -68,6 +68,7 @@
 #pressStart {
     font-size: 1.1em;
     animation: blink 0.8s infinite steps(2);
+    text-align: center;
 }
 
 /* --- Main Screen --- */
@@ -77,6 +78,7 @@ body {
   font-family: 'Press Start 2P', monospace;
   color: cyan;
   text-shadow: 0 0 6px cyan;
+  line-height: 30px;
 }
 
 #arcade-screen {
@@ -264,7 +266,7 @@ body {
 /* --- Point Meassage --- */
 #hitMessage {
     position: absolute;
-    top: 55%;
+    top: 57%;
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 1em;
@@ -336,7 +338,7 @@ button:active {
 }
 
 #modeButton {
-    padding: 8px 40px;
+    padding: 8px 41px;
     margin-top: 10px;
     margin-bottom: 10px;
     color: cyan;
@@ -359,7 +361,7 @@ button:active {
     margin-top: 15px;
     padding: 8px 35px;
     background: black;
-    color: #cyan;
+    color: #AD03DE;
     border: 3px solid #AD03DE;
     font-family: 'Press Start 2P', monospace;
     font-size: 1em;
