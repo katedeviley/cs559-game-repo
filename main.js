@@ -74,6 +74,7 @@ function init() {
 
     // -- Draw initial objects --
     ({ ship, rocks, drones, enemyShips, ufos, boundsBox } = loadPrototypeMode());
+    updateCamera();
 
     // -- Display Level & Instructions --
     difficulty.style.display = "block";
