@@ -18,6 +18,26 @@ export function loadPrototypeMode() {
     return { ship, rocks, drones, enemyShips, ufos, boundsBox };
 }
 
+
+/**
+ * Function for drawing the Bounds
+ * 
+ * @param {*} n 
+ * @returns the bounds mesh
+ */
+export function drawBounds(n)  {    
+    const bound = n*2;
+    const geometry = new THREE.BoxGeometry(bound, bound, bound*10);
+    const material = new THREE.MeshBasicMaterial({ color: "white", wireframe: true });
+    const box = new THREE.Mesh(geometry, material);
+    
+    box.position.set(0, 0, -bound + n/2);
+    box.userData.originalRadius = n;
+    scene.add(box);
+    return box;
+}
+
+
 function drawPrototypeShip() {
     const geometry = new THREE.BufferGeometry();
     const vertices = new Float32Array([
@@ -128,16 +148,4 @@ function drawPrototypeUFOs(numUFOs) {
         ufos.push(ufo);
     }
     return ufos;
-}
-
-export function drawBounds(n)  {    
-    const bound = n*2;
-    const geometry = new THREE.BoxGeometry(bound, bound, bound*10);
-    const material = new THREE.MeshBasicMaterial({ color: "white", wireframe: true });
-    const box = new THREE.Mesh(geometry, material);
-    
-    box.position.set(0, 0, -bound + n/2);
-    box.userData.originalRadius = n;
-    scene.add(box);
-    return box;
 }

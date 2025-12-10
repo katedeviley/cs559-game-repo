@@ -390,7 +390,6 @@ function drawDrones(numDrones) {
     return drones;
 }
 
-
 function drawEnemyShips(numShips) {
     const enemyShips = [];
 
@@ -474,8 +473,6 @@ function drawEnemyShips(numShips) {
     return enemyShips;
 }
 
-
-
 function drawUFOs(numUFOs) {
     const ufos = [];
 
@@ -503,18 +500,13 @@ function drawUFOs(numUFOs) {
     return ufos;
 }
 
-
 function drawBackground() {
-
     function randomOutsideBox(range) {
         let x = 0, y = 0;
-    
-        // Keep generating random positions until one is outside the 25x25 square
         while (Math.abs(x) < 25 && Math.abs(y) < 25) {
             x = -range + Math.random() * (range * 2);
             y = -range + Math.random() * (range * 2);
         }
-    
         return { x, y };
     }
 

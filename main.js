@@ -127,19 +127,34 @@ function init() {
     });
 
     document.getElementById("modeButton").addEventListener("click", () => {
-        const objectsToRemove = [ship, ...rocks, ...drones, ...enemyShips, ...ufos];
-        objectsToRemove.forEach(o => { if (o) scene.remove(o); });
+        for (let i = scene.children.length - 1; i >= 0; i--) {
+            const obj = scene.children[i];
+            if (!(obj.isLight)) { 
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) {
+                        obj.material.forEach(mat => mat.dispose());
+                    } else {
+                        obj.material.dispose();
+                    }
+                }
+                scene.remove(obj);
+            }
+        }
 
         fullMode = !fullMode;
     
         if (fullMode) {
             ({ ship, rocks, drones, enemyShips, ufos } = loadFullMode());
+            boundsBox = drawBounds(25);
             document.getElementById("modeButton").textContent = "PROTOTYPE MODE";
             document.getElementById("modeButton").style.padding = "8px 8px";
+            updateCamera();
         } else {
             ({ ship, rocks, drones, enemyShips, ufos, boundsBox } = loadPrototypeMode());
             document.getElementById("modeButton").textContent = "FULL MODE";
             document.getElementById("modeButton").style.padding = "8px 41px";
+            updateCamera();
         }
     });
 
@@ -260,9 +275,9 @@ function shootBullet() {
 function updateCamera() {
     if (!ship) return;
 
-    const offsetDistance = 10;  // distance behind ship
-    const height = 0;           // height above ship
-    const sensitivity = 7;      // how far mouse moves camera
+    const offsetDistance = 10;  
+    const height = 0;         
+    const sensitivity = 7;     
 
     const camX = ship.position.x;
     const camY = ship.position.y + mouseY * sensitivity;
@@ -297,7 +312,7 @@ function animate() {
         if (edgeDistance && ship && gameStarted) {
 
             if (shipDistance < edgeDistance) {
-                // inside bounds → allow movement
+                // inside bounds
                 if (keys.ArrowUp) ship.position.y += 0.2;
                 if (keys.ArrowDown) ship.position.y -= 0.2;
                 if (keys.ArrowLeft) ship.position.x -= 0.2;
@@ -327,11 +342,12 @@ function animate() {
     }
 
     if (!audioReady && ship && gameStarted) {
+         // inside bounds
         if (keys.ArrowUp && ship.position.y < bound) ship.position.y += 0.2;
         if (keys.ArrowDown && ship.position.y > -bound) ship.position.y -= 0.2;
         if (keys.ArrowLeft && ship.position.x > -bound) ship.position.x -= 0.2;
         if (keys.ArrowRight && ship.position.x < bound) ship.position.x += 0.2;
-
+        // outside bounds
         if (ship.position.y >= bound|| ship.position.y <= -bound || 
             ship.position.x <= -bound || ship.position.x >= bound) { 
                 const scale = (bound - 2) / shipDistance;
@@ -361,8 +377,6 @@ function animate() {
     // -- Rock movement --
     for (let rock of rocks) {
         if (gameStarted == true) { rock.position.z += rock.userData.speed; }
-
-        // Check if rock reached the ship/camera
         const dx = rock.position.x - ship.position.x;
         const dy = rock.position.y - ship.position.y;
         const dz = rock.position.z - ship.position.z;
@@ -393,8 +407,6 @@ function animate() {
 
     // -- Drone Movements --
     if (gameStarted == true) { droneBullets = updateObjects(ship, drones, droneBullets); }
-
-    // Check bullet collisions with ship
     for (let i = droneBullets.length - 1; i >= 0; i--) {
         const b = droneBullets[i];
         const distance = b.position.distanceTo(ship.position);
@@ -421,7 +433,6 @@ function animate() {
     }
 
     for (let drone of drones) {
-        // Check if drone reached the ship
         const dx = drone.position.x - ship.position.x;
         const dy = drone.position.y - ship.position.y;
         const dz = drone.position.z - ship.position.z;
@@ -457,8 +468,6 @@ function animate() {
 
     if ( score >= 100 ) {
         if (gameStarted == true) { enemyBullets = updateObjects(ship, enemyShips, enemyBullets, 0.6, 20); }
-        
-        // Check bullet collisions with ship
         for (let i = enemyBullets.length - 1; i >= 0; i--) {
             const b = enemyBullets[i];
             const distance = b.position.distanceTo(ship.position);
@@ -485,7 +494,6 @@ function animate() {
     }
 
     for (let enemyShip of enemyShips) {
-        // Check if enemy ship reached the ship
         const dx = enemyShip.position.x - ship.position.x;
         const dy = enemyShip.position.y - ship.position.y;
         const dz = enemyShip.position.z - ship.position.z;
@@ -522,7 +530,6 @@ function animate() {
     if ( score >= 300 ) {
         if (gameStarted == true) { laserBeams = updateUFOs(ship, ufos, laserBeams); }
 
-        // Check laser collisions with ship
         for (let i = 0; i < ufos.length; i++) {
             const beam = ufos[i];
 
