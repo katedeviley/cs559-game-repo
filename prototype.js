@@ -27,8 +27,9 @@ export function loadPrototypeMode() {
  */
 export function drawBounds(n)  {    
     const bound = n*2;
-    const geometry = new THREE.BoxGeometry(bound, bound, bound*10);
-    const material = new THREE.MeshBasicMaterial({ color: "white", wireframe: true });
+    const geometry = new THREE.BoxGeometry(bound, bound, bound*10, 2, 2, 1);
+    const material = new THREE.MeshBasicMaterial({ color: "white", wireframe: true, transparent: true,
+        opacity: 0.1 });
     const box = new THREE.Mesh(geometry, material);
     
     box.position.set(0, 0, -bound + n/2);

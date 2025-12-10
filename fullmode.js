@@ -214,7 +214,7 @@ export function updateBounds(analyser, dataArray, boundsBox, bound) {
         if (boundsBox.material.color?.setHSL) {
             boundsBox.material.color.setHSL(hue, sat, light);
         }
-        boundsBox.material.opacity = 0.4 + t * 0.6;
+        boundsBox.material.opacity = 0.1 + t * 0.3;
         boundsBox.material.transparent = true;
     }
 
@@ -251,7 +251,7 @@ function drawShip() {
 
     // Wings
     const wingGeom = new THREE.ConeGeometry(0.18, 1, 3); 
-    const wingMat = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.8, roughness: 0.2 });
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 0.7 });
 
     const leftWing = new THREE.Mesh(wingGeom, wingMat);
     leftWing.position.set(-0.48, 0, -0.7); 
@@ -327,8 +327,6 @@ function drawRocks(numRocks) {
             color: color,
             roughness: 0.8,
             metalness: 0.5,
-            transparent: true,
-            opacity: 0.75,
         });
 
         const rock = new THREE.Mesh(rockGeometry, rockMaterial);
@@ -369,7 +367,7 @@ function drawDrones(numDrones) {
         // wireframe shell
         const boxGeom = new THREE.BoxGeometry(1, 1, 1);
         const boxMat = new THREE.MeshBasicMaterial({
-            color: 0xad900c,
+            color: 0xFF8C00,
             wireframe: true
         });
         const shell = new THREE.Mesh(boxGeom, boxMat);
@@ -521,6 +519,8 @@ function drawBackground() {
             pos.y,
             -20 - Math.random() * 250
         );
+        let scale = 0.1 + Math.random() * 2
+        star.scale.set(scale, scale, scale);
         scene.add(star);
     }
 
@@ -547,7 +547,9 @@ function drawBackground() {
         const planetMat = new THREE.MeshStandardMaterial({
             color: randColor(),
             metalness: 0.4,
-            roughness: 0.7
+            roughness: 0.7,
+            emissive: randColor(),
+            emissiveIntensity: Math.random() * 0.5
         });
 
         const planet = new THREE.Mesh(planetGeom, planetMat);

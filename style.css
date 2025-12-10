@@ -12,6 +12,8 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    text-align: center;
+    overflow-wrap: break-word;
 
     background: radial-gradient(circle at center, #15001a, #02010a 70%, #000000 100%);
     font-family: 'Press Start 2P', monospace;
@@ -44,10 +46,11 @@
     background-size: 3px 3px;
     opacity: 0.3;
     animation: starsMove 60s linear infinite;
+
 }
 
 #arcadeTitle {
-    font-size: 2.2em;
+    font-size: 5vh;
     color: #AD03DE;
     text-shadow:
         0 0 5px #692222,
@@ -57,7 +60,7 @@
 }
 
 #arcadeSubtitle {
-    font-size: 1.1em;
+    font-size: 2.5vh;
     color: cyan;
     text-shadow:
         0 0 5px cyan,
@@ -66,7 +69,7 @@
 }
 
 #pressStart {
-    font-size: 1.1em;
+    font-size: 2.5vh;
     animation: blink 0.8s infinite steps(2);
     text-align: center;
 }
@@ -113,7 +116,7 @@ body {
 /* --- Game State Text --- */
 #state, #group-id {
     position: fixed;
-    padding: 8px 20px;
+    padding: 8px 22px;
     background: rgba(0,0,0,0.5);
     border: 2px solid cyan;
     box-shadow: 0 0 8px cyan;
@@ -139,7 +142,7 @@ body {
 #uiToggle {
     position: fixed;
     top: 185px;
-    left: -80px;
+    left: -75px;
     padding: 10px 15px;
     background: black;
     color: #AD03DE;
@@ -168,13 +171,13 @@ body {
 #ui {
     position: fixed;
     top: 108px;
-    left: -15px;
-    padding: 10px 20px 10px 80px;
+    left: -20px;
+    padding: 10px 14px 10px 80px;
     background: rgba(0,0,0,0.6);
     color: #AD03DE;
     text-shadow: 0 0 8px #AD03DE;
     font-size: 12px;
-    border: 2px solid #AD03DE;
+    border: 2.5px solid #AD03DE;
     border-radius: 6px;
     box-shadow: 0 0 12px #AD03DE;
     transform: translateX(-120%);

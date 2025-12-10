@@ -44,6 +44,10 @@ const checkbox1 = document.getElementById("checkbox1");
 const checkbox2 = document.getElementById("checkbox2");
 const checkbox3 = document.getElementById("checkbox3");
 
+// Settings Tab
+const ui = document.getElementById("ui");
+const uiToggle = document.getElementById("uiToggle");
+
 function init() {
     let canShoot = true;
 
@@ -62,19 +66,19 @@ function init() {
     });
     renderer.setSize(window.innerWidth, window.innerHeight);;
 
-    // --- Lighting ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffEF, 1);
-    directionalLight.position.set(0, 10, 10);
-    directionalLight.lookAt(0, 0, -5);
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
-
     // -- Draw initial objects --
     ({ ship, rocks, drones, enemyShips, ufos, boundsBox } = loadPrototypeMode());
     updateCamera();
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffEF, 1);
+    directionalLight.position.set(0, 10, 10);
+    directionalLight.lookAt(ship);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
 
     // -- Display Level & Instructions --
     difficulty.style.display = "block";
@@ -82,15 +86,24 @@ function init() {
         difficulty.style.display = "none";
      }, 6000);
 
-
     // --- Mouse listener ---
+    function blurActiveElement() {
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+    }
     window.addEventListener("keydown", (e) => {
         // Start the game when Space or Enter pressed (only if not started)
-        if (!gameStarted && (e.code === "Space" || e.code === "Enter")) {
+        if (!gameStarted && e.code === "Space") {
             const s = document.getElementById("arcadeStartScreen");
             if (s) s.style.display = "none";
-            uiToggle.click(); 
+            blurActiveElement();
+            toggleSettings();
             return;
+        }
+
+        if (e.code === "Enter") {
+            toggleSettings();
         }
 
         // Movement keys
@@ -111,15 +124,6 @@ function init() {
     window.addEventListener("mousemove", (e) => {
         mouseX = -(e.clientX / window.innerWidth) * 2 + 1;
         mouseY = (e.clientY / window.innerHeight) * 2 - 1;
-    });
-
-    window.addEventListener("keydown", (e) => {
-        if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
-        if (e.code === "Space" && canShoot) {
-            shootBullet();
-            canShoot = false;
-            setTimeout(() => canShoot = true, 200); // fire rate limit
-        }
     });
 
     // -- Buttons -- 
@@ -159,20 +163,21 @@ function init() {
         }
     });
 
-    document.getElementById("uiToggle").addEventListener("click", () => {
-        const ui = document.getElementById("ui");
-        const uiToggle = document.getElementById("uiToggle");
-        ui.classList.toggle("open");
-        uiToggle.classList.toggle("open"); 
+    uiToggle.addEventListener("click", toggleSettings);
 
-        if(!ui.classList.contains("open")) {
-            gameStarted = true;
-            document.getElementById("uiToggle").textContent = "Settings ▲";
+    function toggleSettings() {
+        ui.classList.toggle("open");
+        uiToggle.classList.toggle("open");
+        blurActiveElement(); 
+        
+        if (ui.classList.contains("open")) {
+        uiToggle.textContent = "Settings ▼";
+        gameStarted = false;
         } else {
-            gameStarted = false;
-            document.getElementById("uiToggle").textContent = "Settings ▼";
+        uiToggle.textContent = "Settings ▲";
+        gameStarted = true;
         }
-    });
+    }
 
     // -- Audio --
     document.getElementById("songPicker").addEventListener("change", async function(e) {
@@ -297,7 +302,7 @@ function resetObject(object) {
 }
 
 function gameEnd() {
-    gameOver = true; gameStarted = false;
+    gameOver = true; 
     ship = null;
     document.getElementById("end").style.display = "block";
     if (score >= highScore) document.getElementById("highScoreMessage").style.display = "block";
