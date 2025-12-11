@@ -1,10 +1,14 @@
 import * as THREE from 'three';
-import { GLTFLoader } from './libs/three.js/examples/jsm/loaders/GLTFLoader.js';
 import { scene } from './main.js';
 
+let _lastFrameTimeFrag = performance.now();
+let _lastFrameTimeNote = performance.now();
+let fragments = [];
+let music = [];
 let smoothShrink = 1;
 let smoothRadius = 0;
 let smoothRotation = 0; 
+let lastNoteTime = 0;
 
 /**
  * Function to load the full game mode objects
@@ -173,6 +177,7 @@ export function updateUFOs(ship, ufos, lasers) {
     return lasers;
 }
 
+
 /**
  * Function that updates the bound box based on Audio
  * 
@@ -229,6 +234,200 @@ export function updateBounds(analyser, dataArray, boundsBox, bound) {
     smoothRadius = Math.max(smoothRadius, 10);
     return Math.sqrt(2) * smoothRadius - 2;
 }
+
+/**
+ * Function that creates rock fragments 
+ * 
+ * @param {*} rock 
+ */
+export function drawFragments(rock) {
+    if (!scene) return;
+
+    const fragmentCount = 20;      
+    const baseSpeed = 0.4;         
+    const startPos = rock.position.clone();
+    const color =  rock.material.color.clone();
+
+    for (let i = 0; i < fragmentCount; i++) {
+        const sx = 0.18 + Math.random() * 0.36;
+        const sy = 0.16 + Math.random() * 0.36;
+        const sz = 0.16 + Math.random() * 0.36;
+        const geom = new THREE.BoxGeometry(sx, sy, sz);
+
+        const mat = new THREE.MeshStandardMaterial({
+            color: color,
+            depthWrite: false 
+        });
+
+        const frag = new THREE.Mesh(geom, mat);
+        frag.position.copy(startPos);
+
+        // Random explosion velocity
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        const r = baseSpeed * (0.6 + Math.random() * 0.8);
+
+        frag.userData.vx = Math.cos(theta) * Math.sin(phi) * r;
+        frag.userData.vy = (Math.cos(phi) * r * 0.6) + 0.05; 
+        frag.userData.vz = Math.sin(theta) * Math.sin(phi) * r;
+
+        frag.userData.gravity = -0.008 - Math.random() * 0.004;
+        frag.userData.spinX = (Math.random() - 0.5) * 6;
+        frag.userData.spinY = (Math.random() - 0.5) * 6;
+        frag.userData.spinZ = (Math.random() - 0.5) * 6;
+
+        scene.add(frag);
+        fragments.push(frag);
+    }
+}
+
+/**
+ * Function that updates rock fragments once rock has exploded
+ */
+export function updateFragments() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - _lastFrameTimeFrag) / 1000); 
+    _lastFrameTimeFrag = now;
+
+    for (let i = fragments.length - 1; i >= 0; i--) {
+        const f = fragments[i];
+
+        // integrate position 
+        f.position.x += f.userData.vx * dt * 60; 
+        f.position.y += f.userData.vy * dt * 40;
+        f.position.z += f.userData.vz * dt * 60;
+
+        // gravity 
+        f.userData.vy += f.userData.gravity * dt * 60;
+
+        // spin
+        f.rotation.x += f.userData.spinX * dt;
+        f.rotation.y += f.userData.spinY * dt;
+        f.rotation.z += f.userData.spinZ * dt;
+    }
+}
+
+
+/**
+ * 
+ * @param {*} ship 
+ */
+export function drawMusic(ship) {
+    if (!scene) return;
+
+    const now = performance.now();
+    if (now - lastNoteTime < 150) return;
+    lastNoteTime = now;
+    
+    const startPos = ship.position.clone();
+
+    const bgColors = [
+        0x66ccff, // sky blue
+        0x6699ff, // soft blue
+        0x33cccc, // teal
+        0x00ffee, // aqua
+        0x9966ff, // lavender purple
+    ];
+
+    let color = bgColors[Math.floor(Math.random() * bgColors.length)];
+    
+    const mat = new THREE.MeshStandardMaterial({
+        color: color,
+        depthWrite: false,
+        transparent: true,
+        opacity: 0.7,
+        emissive: color, 
+        emissiveIntensity: 0.6
+    });
+    
+    const type = Math.random() < 0.5 ? "A" : "B";
+    const note = new THREE.Group();
+
+    if (type === "A") {
+
+        // Note head
+        const headGeom = new THREE.SphereGeometry(0.15, 12, 12);
+        const head = new THREE.Mesh(headGeom, mat);
+        head.position.set(0, 0, 0);
+        note.add(head);
+
+        // Stem
+        const stemGeom = new THREE.BoxGeometry(0.05, 0.6, 0.05);
+        const stem = new THREE.Mesh(stemGeom, mat);
+        stem.position.set(0.1, 0.35, 0);
+        note.add(stem);
+
+        // Flag
+        const flagGeom = new THREE.BoxGeometry(0.25, 0.15, 0.05);
+        const flag = new THREE.Mesh(flagGeom, mat);
+        flag.position.set(0.2, 0.55, 0);
+        flag.rotation.z = -0.6;
+        note.add(flag);
+    }  else {
+
+        // Left head
+        const head1Geom = new THREE.SphereGeometry(0.15, 12, 12);
+        const head1 = new THREE.Mesh(head1Geom, mat);
+        head1.position.set(0, 0, 0);
+        note.add(head1);
+
+        // Right head
+        const head2Geom = new THREE.SphereGeometry(0.15, 12, 12);
+        const head2 = new THREE.Mesh(head2Geom, mat);
+        head2.position.set(0.35, 0.05, 0);
+        note.add(head2);
+
+        // Stem
+        const stemGeom = new THREE.BoxGeometry(0.05, 0.5, 0.05);
+        const stem = new THREE.Mesh(stemGeom, mat);
+        stem.position.set(0.45, 0.4, 0);
+        note.add(stem);
+
+        const stem2 = new THREE.Mesh(stemGeom, mat);
+        stem2.position.set(0.1, 0.4, 0);
+        note.add(stem2);
+
+        const topGeom = new THREE.BoxGeometry(0.4, 0.05, 0.05);
+        const top = new THREE.Mesh(topGeom, mat);
+        top.position.set(0.3, 0.6, 0);
+        note.add(top);
+    }
+
+    note.position.copy(startPos);
+    note.scale.set(0.5, 0.5, 0.5);
+
+    const backSpeed = 0.12 + Math.random() * 0.01;
+    const downSpeed = -0.06 - Math.random() * 0.004;
+    const sideSpeed = (Math.random() - 0.5) * 0.03;
+
+    note.userData.vx = sideSpeed;       
+    note.userData.vy = downSpeed;     
+    note.userData.vz = backSpeed;   
+
+    scene.add(note);
+    music.push(note);
+}
+
+export function updateMusic() {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - _lastFrameTimeNote) / 1000); 
+    _lastFrameTimeNote = now;
+
+    for (let i = music.length - 1; i >= 0; i--) {
+        const n = music[i];
+
+        // integrate position 
+        n.position.x += n.userData.vx * dt * 60; 
+        n.position.y += n.userData.vy * dt * 40;
+        n.position.z += n.userData.vz * dt * 60;
+
+        if(n.position.y < -15) {
+            scene.remove(n);
+            music.splice(i, 1);
+        }
+    }
+}
+
 
 function drawShip() {
     const shipGroup = new THREE.Group();
@@ -321,9 +520,9 @@ function drawRocks(numRocks) {
         }
         rockGeometry.computeVertexNormals();
 
-        const colors = [0xaaaaaa, 0x999999, 0x777777, 0x555555, 0x333333];
+        const colors = [0xdddddd, 0xbbbbbb, 0x999999, 0x777777, 0x555555];
         const color = colors[Math.floor(Math.random() * colors.length)];
-        const rockMaterial = new THREE.MeshBasicMaterial({
+        const rockMaterial = new THREE.MeshStandardMaterial({
             color: color,
             roughness: 0.8,
             metalness: 0.5,

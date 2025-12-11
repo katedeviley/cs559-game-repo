@@ -2,14 +2,14 @@
 // @ts-check
 import * as THREE from 'three';
 import { loadPrototypeMode, drawBounds} from './prototype.js';
-import { updateObjects, updateUFOs, loadFullMode, updateBounds} from './fullmode.js';
+import { updateObjects, updateUFOs, loadFullMode, updateBounds, drawFragments, updateFragments, drawMusic, updateMusic} from './fullmode.js';
 export let scene, camera, renderer;
 
 // High score 
 let highScore = parseInt(localStorage.getItem("highScore")) || 0;
 document.getElementById("highscore").textContent = "High Score: " + highScore;
 
-// Game state variables
+// Game state variables 
 let fullMode = false;
 let shipHP = 100;
 let score = 0;
@@ -377,6 +377,11 @@ function animate() {
         } else boundsBox.material.color.setHSL(0.55, 0.0, 1.0);
     }
 
+    if(audioReady && gameStarted) {
+        drawMusic(ship);
+        updateMusic();
+    }
+
     // -- Camera --
     if( gameStarted == true) updateCamera();
 
@@ -404,12 +409,14 @@ function animate() {
             hitMessage.style.display = "block";
             setTimeout(() => { hitMessage.style.display = "none"; }, 500);
 
+            drawFragments(rock); // <-------------
             resetObject(rock);
 
         } else if (rock.position.z > camera.position.z + 2) {
             resetObject(rock);
         }
     }
+    updateFragments(); 
 
     // -- Drone Movements --
     if (gameStarted == true) { droneBullets = updateObjects(ship, drones, droneBullets); }
