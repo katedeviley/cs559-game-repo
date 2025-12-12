@@ -309,6 +309,7 @@ export function updateFragments() {
 
 
 /**
+ * Function that draws the music notes
  * 
  * @param {*} ship 
  */
@@ -408,6 +409,10 @@ export function drawMusic(ship) {
     music.push(note);
 }
 
+
+/**
+ * Function that updates the music note positons
+ */
 export function updateMusic() {
     const now = performance.now();
     const dt = Math.min(0.05, (now - _lastFrameTimeNote) / 1000); 

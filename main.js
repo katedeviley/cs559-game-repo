@@ -533,7 +533,7 @@ function animate() {
     }
 
     // -- UFO Movement --
-    if (score >= 500 && !hardShown) {
+    if (score >= 300 && !hardShown) {
         difficulty.textContent = `Level 3`;  
         difficulty.style.display = "block";
         hardShown = true;
